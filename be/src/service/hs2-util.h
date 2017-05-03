@@ -18,6 +18,10 @@
 #include "gen-cpp/ImpalaHiveServer2Service.h"
 #include "gen-cpp/Frontend_types.h"
 
+#include "runtime/row-batch.h"
+#include "exprs/expr.h"
+#include "exprs/expr-context.h"
+
 namespace impala {
 
 /// Utility methods for converting from Impala (either an Expr result or a TColumnValue) to
@@ -28,8 +32,18 @@ void TColumnValueToHS2TColumn(const TColumnValue& col_val, const TColumnType& ty
     uint32_t row_idx, apache::hive::service::cli::thrift::TColumn* column);
 
 /// For V6->
+void TColumnValuesToHS2TColumn(const std::vector<const TColumnValue*> & col_vals, const TColumnType& type,
+    uint32_t src_start_idx, uint32_t result_start_idx, int num_vals,
+    apache::hive::service::cli::thrift::TColumn* column);
+
+/// For V6->
 void ExprValueToHS2TColumn(const void* value, const TColumnType& type,
     uint32_t row_idx, apache::hive::service::cli::thrift::TColumn* column);
+
+/// For V6->
+void ExprValuesToHS2TColumn(RowBatch* batch, ExprContext* expr_ctx, const TColumnType& type,
+    uint32_t src_start_idx, uint32_t result_start_idx, int num_vals,
+    apache::hive::service::cli::thrift::TColumn* column);
 
 /// For V1->V5
 void TColumnValueToHS2TColumnValue(const TColumnValue& col_val, const TColumnType& type,
