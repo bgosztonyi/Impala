@@ -108,12 +108,9 @@ Status PlanRootSink::Send(RuntimeState* state, RowBatch* batch) {
 
     int num_to_fetch = batch->num_rows() - current_batch_row;
     if (num_rows_requested_ > 0) num_to_fetch = min(num_to_fetch, num_rows_requested_);
-    for (int i = 0; i < num_to_fetch; ++i) {
-      TupleRow* row = batch->GetRow(current_batch_row);
-      GetRowValue(row, &result_row, &scales);
-      RETURN_IF_ERROR(results_->AddOneRow(result_row, scales));
-      ++current_batch_row;
-    }
+    int fetched=results_->AddRows(batch, output_expr_ctxs_, current_batch_row, num_to_fetch);
+    current_batch_row +=fetched;
+
     // Signal the consumer.
     results_ = nullptr;
     ExprContext::FreeLocalAllocations(output_expr_ctxs_);
