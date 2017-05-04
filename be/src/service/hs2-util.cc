@@ -32,7 +32,8 @@ using namespace strings;
 
 template<typename S, typename T=S>
 void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
-               vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx, int num_vals ){
+    vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx,
+    int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
   uint32_t source_end_idx=src_start_idx+num_vals;
   uint32_t result_idx=result_start_idx;
@@ -47,8 +48,9 @@ void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
 }
 
 template<typename D>
-void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& result, const ColumnType& decimalType,
-                      vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx, int num_vals ){
+void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx,
+    vector<string>& result, const ColumnType& decimalType, vector<bool>& is_null,
+    uint32_t src_start_idx, uint32_t result_start_idx, int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
   uint32_t source_end_idx=src_start_idx+num_vals;
   uint32_t result_idx=result_start_idx;
@@ -62,8 +64,9 @@ void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& r
   }
 }
 
-void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& result,
-                        vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx, int num_vals ){
+void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx,
+    vector<string>& result, vector<bool>& is_null, uint32_t src_start_idx,
+    uint32_t result_start_idx, int num_vals ) {
   uint32_t new_size=result_start_idx+num_vals;
   uint32_t source_end_idx=src_start_idx+num_vals;
   uint32_t result_idx=result_start_idx;
@@ -73,15 +76,16 @@ void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>&
     void* value=expr_ctx->GetValue(batch->GetRow(i));
     if (value!=NULL) {
       RawValue::PrintValue(value, TYPE_TIMESTAMP, -1,
-                           &(result[result_idx]));
+          &(result[result_idx]));
     }
     is_null[result_idx]=(value==NULL);
     ++result_idx;
   }
 }
 
-void AddStringValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& result,
-                     vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx, int num_vals ){
+void AddStringValues(RowBatch * batch, ExprContext* expr_ctx,
+    vector<string>& result, vector<bool>& is_null, uint32_t src_start_idx,
+    uint32_t result_start_idx, int num_vals ) {
   uint32_t new_size=result_start_idx+num_vals;
   uint32_t source_end_idx=src_start_idx+num_vals;
   uint32_t result_idx=result_start_idx;
@@ -98,8 +102,9 @@ void AddStringValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& re
   }
 }
 
-void AddCharValues(RowBatch * batch, ExprContext* expr_ctx, vector<string>& result, const ColumnType& char_type,
-                   vector<bool>& is_null, uint32_t src_start_idx, uint32_t result_start_idx, int num_vals ){
+void AddCharValues(RowBatch * batch, ExprContext* expr_ctx,
+    vector<string>& result, const ColumnType& char_type, vector<bool>& is_null,
+    uint32_t src_start_idx, uint32_t result_start_idx, int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
   uint32_t source_end_idx=src_start_idx+num_vals;
   uint32_t result_idx=result_start_idx;
@@ -224,101 +229,95 @@ void impala::TColumnValuesToHS2TColumn(const vector<const TColumnValue*> & col_v
 
   switch (type.types[0].scalar_type.type) {
     case TPrimitiveType::NULL_TYPE:
-    case TPrimitiveType::BOOLEAN:
-      {
-        auto& result=column->boolVal.values;
-        nulls = &column->boolVal.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->bool_val;
-          is_null[result_idx]=value->__isset.bool_val;
-          ++result_idx;
-        }
+    case TPrimitiveType::BOOLEAN: {
+      auto& result=column->boolVal.values;
+      nulls = &column->boolVal.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->bool_val;
+        is_null[result_idx]=value->__isset.bool_val;
+        ++result_idx;
       }
       break;
-    case TPrimitiveType::TINYINT:
-      {
-        auto& result=column->byteVal.values;
-        nulls = &column->byteVal.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->byte_val;
-          is_null[result_idx]=value->__isset.byte_val;
-          ++result_idx;
-        }
-      }
-    break;
-    case TPrimitiveType::SMALLINT:
-      {
-        auto& result=column->i16Val.values;
-        nulls = &column->i16Val.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->short_val;
-          is_null[result_idx]=value->__isset.short_val;
-          ++result_idx;
-        }
+    }
+    case TPrimitiveType::TINYINT: {
+      auto& result=column->byteVal.values;
+      nulls = &column->byteVal.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->byte_val;
+        is_null[result_idx]=value->__isset.byte_val;
+        ++result_idx;
       }
       break;
-    case TPrimitiveType::INT:
-      {    auto& result=column->i32Val.values;
-        nulls = &column->i32Val.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->int_val;
-          is_null[result_idx]=value->__isset.int_val;
-          ++result_idx;
-        }
+    }
+    case TPrimitiveType::SMALLINT: {
+      auto& result=column->i16Val.values;
+      nulls = &column->i16Val.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->short_val;
+        is_null[result_idx]=value->__isset.short_val;
+        ++result_idx;
       }
       break;
-    case TPrimitiveType::BIGINT:
-      {
-        auto& result=column->i64Val.values;
-        nulls = &column->i64Val.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->long_val;
-          is_null[result_idx]=value->__isset.long_val;
-          ++result_idx;
-        }
+    }
+    case TPrimitiveType::INT: {
+      auto& result=column->i32Val.values;
+      nulls = &column->i32Val.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->int_val;
+        is_null[result_idx]=value->__isset.int_val;
+        ++result_idx;
       }
       break;
+    }
+    case TPrimitiveType::BIGINT: {
+      auto& result=column->i64Val.values;
+      nulls = &column->i64Val.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->long_val;
+        is_null[result_idx]=value->__isset.long_val;
+        ++result_idx;
+      }
+      break;
+    }
     case TPrimitiveType::FLOAT:
-    case TPrimitiveType::DOUBLE:
-      {
-        auto& result=column->doubleVal.values;
-        nulls = &column->doubleVal.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->double_val;
-          is_null[result_idx]=value->__isset.double_val;
-          ++result_idx;
-        }
+    case TPrimitiveType::DOUBLE: {
+      auto& result=column->doubleVal.values;
+      nulls = &column->doubleVal.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->double_val;
+        is_null[result_idx]=value->__isset.double_val;
+        ++result_idx;
       }
       break;
+    }
     case TPrimitiveType::TIMESTAMP:
     case TPrimitiveType::STRING:
     case TPrimitiveType::CHAR:
     case TPrimitiveType::VARCHAR:
-    case TPrimitiveType::DECIMAL:
-      {
-        auto& result=column->stringVal.values;
-        nulls = &column->i64Val.nulls;
-        result.resize(new_size);
-        for (int i=src_start_idx; i<source_end_idx; ++i) {
-          const TColumnValue* value=col_vals[i];
-          result[result_idx]=value->long_val;
-          is_null[result_idx]=value->__isset.long_val;
-          ++result_idx;
-        }
+    case TPrimitiveType::DECIMAL: {
+      auto& result=column->stringVal.values;
+      nulls = &column->i64Val.nulls;
+      result.resize(new_size);
+      for (int i=src_start_idx; i<source_end_idx; ++i) {
+        const TColumnValue* value=col_vals[i];
+        result[result_idx]=value->long_val;
+        is_null[result_idx]=value->__isset.long_val;
+        ++result_idx;
       }
       break;
+    }
     default:
       DCHECK(false) << "Unhandled type: "
                     << TypeToString(ThriftToType(type.types[0].scalar_type.type));
@@ -326,7 +325,6 @@ void impala::TColumnValuesToHS2TColumn(const vector<const TColumnValue*> & col_v
   }
   SetNullBits(result_start_idx, is_null, nulls);
 }
-
 
 // For V6 and above
 void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
@@ -431,91 +429,81 @@ void impala::ExprValueToHS2TColumn(const void* value, const TColumnType& type,
 }
 
 // For V6 and above
-void impala::ExprValuesToHS2TColumn(RowBatch* rows, ExprContext* expr_ctx, const TColumnType& type,
-                                    uint32_t src_start_idx, uint32_t result_start_idx, int num_vals, thrift::TColumn* column) {
+void impala::ExprValuesToHS2TColumn(RowBatch* rows, ExprContext* expr_ctx,
+    const TColumnType& type, uint32_t src_start_idx, uint32_t result_start_idx,
+    int num_vals, thrift::TColumn* column) {
   string* nulls;
   vector<bool> is_null;
   switch (type.types[0].scalar_type.type) {
     case TPrimitiveType::NULL_TYPE:
-    case TPrimitiveType::BOOLEAN:
-      {
-        auto& result=column->boolVal.values;
-        nulls = &column->boolVal.nulls;
-        AddValues<bool>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    case TPrimitiveType::BOOLEAN: {
+      auto& result=column->boolVal.values;
+      nulls = &column->boolVal.nulls;
+      AddValues<bool>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::TINYINT:
-      {
-        auto& result=column->byteVal.values;
-        nulls = &column->byteVal.nulls;
-        AddValues<int8_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::TINYINT: {
+      auto& result=column->byteVal.values;
+      nulls = &column->byteVal.nulls;
+      AddValues<int8_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::SMALLINT:
-      {
-        auto& result=column->i16Val.values;
-        nulls = &column->i16Val.nulls;
-        AddValues<int16_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::SMALLINT: {
+      auto& result=column->i16Val.values;
+      nulls = &column->i16Val.nulls;
+      AddValues<int16_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::INT:
-      {
-        auto& result=column->i32Val.values;
-        nulls = &column->i32Val.nulls;
-        AddValues<int32_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::INT: {
+      auto& result=column->i32Val.values;
+      nulls = &column->i32Val.nulls;
+      AddValues<int32_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::BIGINT:
-      {
-        auto& result=column->i64Val.values;
-        nulls = &column->i64Val.nulls;
-        AddValues<int64_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::BIGINT: {
+      auto& result=column->i64Val.values;
+      nulls = &column->i64Val.nulls;
+      AddValues<int64_t>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::FLOAT:
-      {
-        auto& result=column->doubleVal.values;
-        nulls = &column->doubleVal.nulls;
-        AddValues<float,double>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::FLOAT: {
+      auto& result=column->doubleVal.values;
+      nulls = &column->doubleVal.nulls;
+      AddValues<float,double>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::DOUBLE:
-      {
-        auto& result=column->doubleVal.values;
-        nulls = &column->doubleVal.nulls;
-        AddValues<double>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::DOUBLE: {
+      auto& result=column->doubleVal.values;
+      nulls = &column->doubleVal.nulls;
+      AddValues<double>(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::TIMESTAMP:
-      {
-        auto& result=column->stringVal.values;
-        nulls = &column->stringVal.nulls;
-        AddTimestampValues(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::TIMESTAMP: {
+      auto& result=column->stringVal.values;
+      nulls = &column->stringVal.nulls;
+      AddTimestampValues(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
+    }
     case TPrimitiveType::STRING:
-    case TPrimitiveType::VARCHAR:
-      {
-        auto& result=column->stringVal.values;
-        nulls = &column->stringVal.nulls;
-        AddStringValues(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    case TPrimitiveType::VARCHAR: {
+      auto& result=column->stringVal.values;
+      nulls = &column->stringVal.nulls;
+      AddStringValues(rows, expr_ctx, result, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::CHAR:
-      {
-        auto& result=column->stringVal.values;
-        nulls = &column->stringVal.nulls;
-        ColumnType char_type = ColumnType::CreateCharType(type.types[0].scalar_type.len);
-        AddCharValues(rows, expr_ctx, result, char_type, is_null, src_start_idx, result_start_idx, num_vals);
-      }
+    }
+    case TPrimitiveType::CHAR: {
+      auto& result=column->stringVal.values;
+      nulls = &column->stringVal.nulls;
+      ColumnType char_type = ColumnType::CreateCharType(type.types[0].scalar_type.len);
+      AddCharValues(rows, expr_ctx, result, char_type, is_null, src_start_idx, result_start_idx, num_vals);
       break;
-    case TPrimitiveType::DECIMAL:
+    }
+    case TPrimitiveType::DECIMAL: {
       // HiveServer2 requires decimal to be presented as string.
-      {
-        auto& result=column->stringVal.values;
-        nulls = &column->stringVal.nulls;
-        const ColumnType& decimalType = ColumnType::FromThrift(type);
-        switch (decimalType.GetByteSize()) {
+      auto& result=column->stringVal.values;
+      nulls = &column->stringVal.nulls;
+      const ColumnType& decimalType = ColumnType::FromThrift(type);
+      switch (decimalType.GetByteSize()) {
         case 4:
           AddDecimalValues<Decimal4Value>(rows, expr_ctx, result, decimalType, is_null, src_start_idx, result_start_idx, num_vals);
           break;
@@ -527,9 +515,9 @@ void impala::ExprValuesToHS2TColumn(RowBatch* rows, ExprContext* expr_ctx, const
           break;
         default:
           DCHECK(false) << "bad type: " << decimalType;
-        }
       }
       break;
+    }
     default:
       DCHECK(false) << "Unhandled type: "
                     << TypeToString(ThriftToType(type.types[0].scalar_type.type));
