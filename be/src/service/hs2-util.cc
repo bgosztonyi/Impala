@@ -135,7 +135,7 @@ inline void SetNullBit(uint32_t row_idx, bool is_null, string* nulls) {
 }
 
 inline void SetNullsSize(uint32_t new_size, string* nulls) {
-    nulls->resize(GetNullsRequiredSize(new_size));
+  nulls->resize(GetNullsRequiredSize(new_size));
 }
 
 inline void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
