@@ -59,6 +59,11 @@ class AsciiQueryResultSet : public QueryResultSet {
   /// Convert TResultRow to ASCII using "\t" as column delimiter and store it in this
   /// result set.
   virtual Status AddOneRow(const TResultRow& row);
+ 
+  virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+      int start_idx, int num_rows);
+
+  virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
 
   virtual int AddRows(const QueryResultSet* other, int start_idx, int num_rows);
   virtual int64_t ByteSize(int start_idx, int num_rows);
@@ -70,6 +75,10 @@ class AsciiQueryResultSet : public QueryResultSet {
 
   /// Points to the result set to be filled. Not owned by this object.
   vector<string>* result_set_;
+ 
+  string GetRowString(const vector<void*>& col_values, const vector<int>& scales);
+
+  string GetRowString(const TResultRow& row);
 };
 
 /// Result set container for Hive protocol versions >= V6, where results are returned in
@@ -86,6 +95,11 @@ class HS2ColumnarResultSet : public QueryResultSet {
   /// Add a row from a TResultRow
   virtual Status AddOneRow(const TResultRow& row);
 
+  virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+      int start_idx, int num_rows);
+ 
+  virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
+ 
   /// Copy all columns starting at 'start_idx' and proceeding for a maximum of 'num_rows'
   /// from 'other' into this result set
   virtual int AddRows(const QueryResultSet* other, int start_idx, int num_rows);
@@ -124,6 +138,11 @@ class HS2RowOrientedResultSet : public QueryResultSet {
 
   /// Convert TResultRow to HS2 TRow and store it in a TRowSet
   virtual Status AddOneRow(const TResultRow& row);
+ 
+  virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+      int start_idx, int num_rows);
+  
+  virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
 
   virtual int AddRows(const QueryResultSet* other, int start_idx, int num_rows);
   virtual int64_t ByteSize(int start_idx, int num_rows);
@@ -158,8 +177,8 @@ QueryResultSet* QueryResultSet::CreateHS2ResultSet(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-Status AsciiQueryResultSet::AddOneRow(
-    const vector<void*>& col_values, const vector<int>& scales) {
+string AsciiQueryResultSet::GetRowString(const vector<void*>& col_values,
+  const vector<int>& scales) {
   int num_col = col_values.size();
   DCHECK_EQ(num_col, metadata_.columns.size());
   stringstream out_stream;
@@ -167,15 +186,14 @@ Status AsciiQueryResultSet::AddOneRow(
   for (int i = 0; i < num_col; ++i) {
     // ODBC-187 - ODBC can only take "\t" as the delimiter
     out_stream << (i > 0 ? "\t" : "");
-    DCHECK_EQ(1, metadata_.columns[i].columnType.types.size());
+   DCHECK_EQ(1, metadata_.columns[i].columnType.types.size());
     RawValue::PrintValue(col_values[i],
-        ColumnType::FromThrift(metadata_.columns[i].columnType), scales[i], &out_stream);
+                         ColumnType::FromThrift(metadata_.columns[i].columnType), scales[i], &out_stream);
   }
-  result_set_->push_back(out_stream.str());
-  return Status::OK();
+  return out_stream.str();
 }
 
-Status AsciiQueryResultSet::AddOneRow(const TResultRow& row) {
+string AsciiQueryResultSet::GetRowString(const TResultRow& row) {
   int num_col = row.colVals.size();
   DCHECK_EQ(num_col, metadata_.columns.size());
   stringstream out_stream;
@@ -185,9 +203,57 @@ Status AsciiQueryResultSet::AddOneRow(const TResultRow& row) {
     out_stream << (i > 0 ? "\t" : "");
     out_stream << row.colVals[i];
   }
-  result_set_->push_back(out_stream.str());
+  return out_stream.str();
+}
+ 
+Status AsciiQueryResultSet::AddOneRow(const vector<void*>& col_values,
+    const vector<int>& scales) {
+  result_set_->push_back(GetRowString(col_values,scales));
   return Status::OK();
 }
+
+Status AsciiQueryResultSet::AddOneRow(const TResultRow& row) {
+  result_set_->push_back(GetRowString(row));
+  return Status::OK();
+}
+
+int AsciiQueryResultSet::AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+    int start_idx, int num_rows) {
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, batch->num_rows() - start_idx));
+  const int src_end_idx=start_idx+rows_added;
+  vector<int> scales;
+  vector<void*> result_row;
+  scales.resize(expr_ctxs.size());
+  result_row.resize(expr_ctxs.size());
+  for (int c = 0; c < expr_ctxs.size(); ++c) {
+    scales[c] = expr_ctxs[c]->root()->output_scale();
+  }
+  int result_ix=result_set_->size();
+  result_set_->resize(result_set_->size()+rows_added);
+  for (int i = start_idx; i < src_end_idx; ++i) {
+    TupleRow* src_row = batch->GetRow(i);
+    for (int c = 0; c < expr_ctxs.size(); ++c) {
+      result_row[c] = expr_ctxs[c]->GetValue(src_row);
+    }
+    (*result_set_)[result_ix]=GetRowString(result_row,scales);
+    result_ix++;
+  }
+  return rows_added;
+}
+
+int AsciiQueryResultSet::AddRows(const vector<TResultRow>& rows,
+    int start_idx, int num_rows) {
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, rows.size() - start_idx));
+  int src_end_idx=start_idx+rows_added;
+  int result_ix=result_set_->size();
+  result_set_->resize(result_set_->size()+rows_added);
+  for (int i = start_idx; i < src_end_idx; ++i) {
+    (*result_set_)[result_ix]=GetRowString(rows[i]);
+    result_ix++;
+  }
+  return rows_added;
+}
+
 
 int AsciiQueryResultSet::AddRows(
     const QueryResultSet* other, int start_idx, int num_rows) {
@@ -208,6 +274,9 @@ int64_t AsciiQueryResultSet::ByteSize(int start_idx, int num_rows) {
   }
   return bytes;
 }
+ 
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -287,6 +356,42 @@ Status HS2ColumnarResultSet::AddOneRow(const TResultRow& row) {
   ++num_rows_;
   return Status::OK();
 }
+ 
+int HS2ColumnarResultSet::AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+    int start_idx, int num_rows)  {
+  int num_col = expr_ctxs.size();
+  DCHECK_EQ(num_col, metadata_.columns.size());
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, batch->num_rows() - start_idx));
+  for (int c = 0; c < num_col; ++c) {
+    auto targetColumn=&(result_set_->columns[c]);
+    const TColumnType& columnType=metadata_.columns[c].columnType;
+    ExprValuesToHS2TColumn(batch, expr_ctxs[c], columnType, start_idx, num_rows_, rows_added, targetColumn);
+  }
+  num_rows_+=rows_added;
+  return rows_added;
+}
+
+int HS2ColumnarResultSet::AddRows(const std::vector<TResultRow>& rows,
+    int start_idx, int num_rows) {
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, rows.size() - start_idx));
+  if (rows_added==0) return 0;
+  int num_col=rows[start_idx].colVals.size();
+  DCHECK_EQ(num_col, metadata_.columns.size());
+  vector<const TColumnValue*> col_vals(rows_added);
+  for (int c=0; c<num_col; ++c) {
+    auto targetColumn=&(result_set_->columns[c]);
+    const TColumnType& columnType=metadata_.columns[c].columnType;
+    int src_idx=start_idx;
+    for (int i=0; i<rows_added; ++i) {
+      col_vals[i]=&(rows[src_idx].colVals[c]);
+      src_idx++;
+    }
+    TColumnValuesToHS2TColumn(col_vals,columnType,0,num_rows_,rows_added,targetColumn);
+  }
+  num_rows_+=rows_added;
+  return rows_added;
+}
+
 
 // Copy all columns starting at 'start_idx' and proceeding for a maximum of 'num_rows'
 // from 'other' into this result set
@@ -452,6 +557,66 @@ Status HS2RowOrientedResultSet::AddOneRow(const TResultRow& row) {
         row.colVals[i], metadata_.columns[i].columnType, &(trow.colVals[i]));
   }
   return Status::OK();
+}
+ 
+int HS2RowOrientedResultSet::AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
+    int start_idx, int num_rows)  {
+  int num_col = expr_ctxs.size();
+  DCHECK_EQ(num_col, metadata_.columns.size());
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, batch->num_rows() - start_idx));
+  const int result_start_idx=result_set_->rows.size();
+  const int new_size=result_start_idx+rows_added;
+  auto& result_rows=result_set_->rows;
+  result_rows.resize(new_size);
+
+  vector<TupleRow*> src_rows(rows_added);
+  int src_idx=start_idx;
+  for (int i=0; i<rows_added; ++i) {
+    src_rows[i] = batch->GetRow(src_idx);
+    src_idx++;
+  }
+
+  int result_idx=result_start_idx;
+  for (int i=0; i<rows_added; ++i) {
+    TupleRow* src_row=src_rows[i];
+    TRow& trow=result_rows[result_idx]=TRow();
+    trow.colVals.resize(num_col);
+    for (int c = 0; c < num_col; ++c) {
+      void* value=expr_ctxs[c]->GetValue(src_row);
+      ExprValueToHS2TColumnValue(
+          value, metadata_.columns[c].columnType, &(trow.colVals[c]));
+    }
+    result_idx++;
+  }
+  return rows_added;
+}
+ 
+int HS2RowOrientedResultSet::AddRows(const std::vector<TResultRow>& rows,
+    int start_idx, int num_rows) {
+  const int rows_added=max<size_t>(0,min<size_t>(num_rows, rows.size() - start_idx));
+  if (rows_added==0) return 0;
+  int num_col=rows[start_idx].colVals.size();
+  DCHECK_EQ(num_col, metadata_.columns.size());
+  const int result_start_idx=result_set_->rows.size();
+  const int new_size=result_start_idx+rows_added;
+  const int end_idx=start_idx+rows_added;
+ 
+  auto& result_rows=result_set_->rows;
+  result_rows.resize(new_size);
+
+  int result_idx=result_start_idx;
+  for (int i=start_idx; i<end_idx; ++i) {
+    TRow& trow=result_rows[result_idx]=TRow();
+    trow.colVals.resize(num_col);
+    const TResultRow& src_row=rows[i];
+    for (int c = 0; c < num_col; ++c) {
+      const TColumnValue& value=src_row.colVals[c];
+        TColumnValueToHS2TColumnValue(
+            value, metadata_.columns[c].columnType, &(trow.colVals[c]));
+    }
+    result_idx++;
+  }
+  return rows_added;
 }
 
 int HS2RowOrientedResultSet::AddRows(
