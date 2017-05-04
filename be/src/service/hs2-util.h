@@ -15,12 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "gen-cpp/ImpalaHiveServer2Service.h"
-#include "gen-cpp/Frontend_types.h"
-
 #include "runtime/row-batch.h"
 #include "exprs/expr.h"
 #include "exprs/expr-context.h"
+#include "gen-cpp/ImpalaHiveServer2Service.h"
+#include "gen-cpp/Frontend_types.h"
 
 namespace impala {
 
