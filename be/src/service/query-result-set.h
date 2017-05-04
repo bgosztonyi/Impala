@@ -19,6 +19,9 @@
 #define IMPALA_SERVICE_QUERY_RESULT_SET_H
 
 #include "common/status.h"
+#include "runtime/row-batch.h"
+#include "exprs/expr.h"
+#include "exprs/expr-context.h"
 #include "gen-cpp/Data_types.h"
 #include "gen-cpp/Results_types.h"
 #include "gen-cpp/TCLIService_types.h"
@@ -46,6 +49,11 @@ class QueryResultSet {
   /// Add the TResultRow to this result set. When a row comes from a DDL/metadata
   /// operation, the row in the form of TResultRow.
   virtual Status AddOneRow(const TResultRow& row) = 0;
+ 
+  virtual int AddRows(RowBatch * batch, const std::vector<ExprContext*> & expr_ctxs,
+      int start_idx, int num_rows) = 0;
+
+  virtual int AddRows(const std::vector<TResultRow>& rows, int start_idx, int num_rows) = 0;
 
   /// Copies rows in the range [start_idx, start_idx + num_rows) from the other result
   /// set into this result set. Returns the number of rows added to this result set.
