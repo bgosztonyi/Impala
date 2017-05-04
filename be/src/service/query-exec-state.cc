@@ -744,15 +744,12 @@ Status ImpalaServer::QueryExecState::FetchRowsInternal(const int32_t max_rows,
 
   if (request_result_set_ != NULL) {
     query_state_ = beeswax::QueryState::FINISHED;
-    int num_rows = 0;
     const vector<TResultRow>& all_rows = (*(request_result_set_.get()));
+    int num_to_fetch=max_rows;
     // max_rows <= 0 means no limit
-    while ((num_rows < max_rows || max_rows <= 0)
-        && num_rows_fetched_ < all_rows.size()) {
-      fetched_rows->AddOneRow(all_rows[num_rows_fetched_]);
-      ++num_rows_fetched_;
-      ++num_rows;
-    }
+    if (num_to_fetch==0) num_to_fetch=max<size_t>(all_rows.size()-num_rows_fetched_,0);
+    int fetched=fetched_rows->AddRows(all_rows, num_rows_fetched_, num_to_fetch);
+    num_rows_fetched_+=fetched;
     eos_ = (num_rows_fetched_ == all_rows.size());
     return Status::OK();
   }
