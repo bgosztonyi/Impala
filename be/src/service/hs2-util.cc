@@ -30,11 +30,11 @@ using namespace apache::hive::service::cli;
 using namespace impala;
 using namespace strings;
 
-inline int GetNullsRequiredSize(int num_vals) {
+static int GetNullsRequiredSize(int num_vals) {
   return (num_vals + 7) / 8;
 }
 
-inline void SetNullsSize(uint32_t new_size, string* nulls) {
+static void SetNullsSize(uint32_t new_size, string* nulls) {
   nulls->resize(GetNullsRequiredSize(new_size));
 }
 
@@ -43,20 +43,20 @@ inline void SetNullsSize(uint32_t new_size, string* nulls) {
 // be set in 'nulls' (taking the LSB as bit 0). If 'is_null' is false, the row_idx'th bit
 // will be unchanged. If 'nulls' does not contain 'row_idx' bits, it will be extended by
 // one byte.
-inline void SetNullBit(uint32_t row_idx, bool is_null, string* nulls) {
+static void SetNullBit(uint32_t row_idx, bool is_null, string* nulls) {
   DCHECK_LE(GetNullsRequiredSize(row_idx), nulls->size());
   int16_t mod_8 = row_idx % 8;
   if (mod_8 == 0) (*nulls) += '\0';
   (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
 }
 
-inline void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
+static void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
   DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
   int16_t mod_8 = row_idx % 8;
   (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
 }
 
-inline bool GetNullBit(const string& nulls, uint32_t row_idx) {
+static bool GetNullBit(const string& nulls, uint32_t row_idx) {
   DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls.size());
   return nulls[row_idx / 8] & (1 << row_idx % 8);
 }
@@ -77,7 +77,7 @@ void impala::StitchNulls(uint32_t num_rows_before, uint32_t num_rows_added,
 }
 
 template<typename S, typename T=S>
-void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
+static void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
     string* nulls, uint32_t src_start_idx, uint32_t result_start_idx,
     int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
@@ -94,7 +94,7 @@ void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
 }
 
 template<typename D>
-void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx,
+static void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx,
     vector<string>& result, const ColumnType& decimalType, string* nulls,
     uint32_t src_start_idx, uint32_t result_start_idx, int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
@@ -110,7 +110,7 @@ void AddDecimalValues(RowBatch * batch, ExprContext* expr_ctx,
   }
 }
 
-void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx,
+static void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx,
     vector<string>& result, string* nulls, uint32_t src_start_idx,
     uint32_t result_start_idx, int num_vals ) {
   uint32_t new_size=result_start_idx+num_vals;
@@ -129,7 +129,7 @@ void AddTimestampValues(RowBatch * batch, ExprContext* expr_ctx,
   }
 }
 
-void AddStringValues(RowBatch * batch, ExprContext* expr_ctx,
+static void AddStringValues(RowBatch * batch, ExprContext* expr_ctx,
     vector<string>& result, string* nulls, uint32_t src_start_idx,
     uint32_t result_start_idx, int num_vals ) {
   uint32_t new_size=result_start_idx+num_vals;
@@ -148,7 +148,7 @@ void AddStringValues(RowBatch * batch, ExprContext* expr_ctx,
   }
 }
 
-void AddCharValues(RowBatch * batch, ExprContext* expr_ctx,
+static void AddCharValues(RowBatch * batch, ExprContext* expr_ctx,
     vector<string>& result, const ColumnType& char_type, string* nulls,
     uint32_t src_start_idx, uint32_t result_start_idx, int num_vals) {
   uint32_t new_size=result_start_idx+num_vals;
