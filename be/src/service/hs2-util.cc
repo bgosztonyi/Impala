@@ -30,8 +30,8 @@ using namespace apache::hive::service::cli;
 using namespace impala;
 using namespace strings;
 
-inline int GetNullsRequiredSize(int numVals) {
-  return (numvals + 7) / 8;
+inline int GetNullsRequiredSize(int num_vals) {
+  return (num_vals + 7) / 8;
 }
 
 inline void SetNullsSize(uint32_t new_size, string* nulls) {
@@ -57,7 +57,7 @@ inline void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
 }
 
 inline bool GetNullBit(const string& nulls, uint32_t row_idx) {
-  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
+  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls.size());
   return nulls[row_idx / 8] & (1 << row_idx % 8);
 }
 
@@ -473,7 +473,7 @@ void impala::ExprValuesToHS2TColumn(RowBatch* rows, ExprContext* expr_ctx,
     }
     case TPrimitiveType::FLOAT: {
       auto& result=column->doubleVal.values;
-      nulls = &column->doubleVal.nulls;
+      auto nulls = &column->doubleVal.nulls;
       AddValues<float,double>(rows, expr_ctx, result, nulls, src_start_idx, result_start_idx, num_vals);
       break;
     }
