@@ -195,9 +195,9 @@ string AsciiQueryResultSet::GetRowString(const vector<void*>& col_values,
   for (int i = 0; i < num_col; ++i) {
     // ODBC-187 - ODBC can only take "\t" as the delimiter
     out_stream << (i > 0 ? "\t" : "");
-   DCHECK_EQ(1, metadata_.columns[i].columnType.types.size());
+    DCHECK_EQ(1, metadata_.columns[i].columnType.types.size());
     RawValue::PrintValue(col_values[i],
-                         ColumnType::FromThrift(metadata_.columns[i].columnType), scales[i], &out_stream);
+        ColumnType::FromThrift(metadata_.columns[i].columnType), scales[i], &out_stream);
   }
   return out_stream.str();
 }
@@ -283,9 +283,6 @@ int64_t AsciiQueryResultSet::ByteSize(int start_idx, int num_rows) {
   }
   return bytes;
 }
- 
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
