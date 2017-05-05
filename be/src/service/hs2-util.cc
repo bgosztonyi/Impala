@@ -700,7 +700,7 @@ void impala::ExprValueToHS2TColumnValue(const void* value, const TColumnType& ty
 }
 
 template<typename T>
-void PrintVal(const T& val, ostream* ss) {
+static void PrintVal(const T& val, ostream* ss) {
   if (val.__isset.value) {
     (*ss) << val.value;
   } else {
@@ -711,7 +711,7 @@ void PrintVal(const T& val, ostream* ss) {
 // Specialisation for byte values that would otherwise be interpreted as character values,
 // not integers, when printed to the stringstream.
 template<>
-void PrintVal(const apache::hive::service::cli::thrift::TByteValue& val, ostream* ss) {
+static void PrintVal(const apache::hive::service::cli::thrift::TByteValue& val, ostream* ss) {
   if (val.__isset.value) {
     (*ss) << static_cast<int16_t>(val.value);
   } else {
