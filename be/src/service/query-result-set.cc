@@ -60,9 +60,14 @@ class AsciiQueryResultSet : public QueryResultSet {
   /// result set.
   virtual Status AddOneRow(const TResultRow& row);
  
+  /// Convert several row's expr values to ASCII using "\t" as column delimiter and
+  /// store them in this result set.
+  /// TODO: Handle complex types.
   virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
       int start_idx, int num_rows);
 
+  /// Convert several TResultRows to ASCII using "\t" as column delimiter and store
+  /// them in this result set.
   virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
 
   virtual int AddRows(const QueryResultSet* other, int start_idx, int num_rows);
@@ -95,9 +100,11 @@ class HS2ColumnarResultSet : public QueryResultSet {
   /// Add a row from a TResultRow
   virtual Status AddOneRow(const TResultRow& row);
 
+  /// Add several rows of expr values
   virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
       int start_idx, int num_rows);
  
+  /// Add several TResultRows
   virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
  
   /// Copy all columns starting at 'start_idx' and proceeding for a maximum of 'num_rows'
@@ -139,9 +146,11 @@ class HS2RowOrientedResultSet : public QueryResultSet {
   /// Convert TResultRow to HS2 TRow and store it in a TRowSet
   virtual Status AddOneRow(const TResultRow& row);
  
+  /// Convert expr values to HS2 TRows and store them in a TRowSet.
   virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
       int start_idx, int num_rows);
   
+  /// Convert several TResultRows to HS2 TRows and store them in a TRowSet
   virtual int AddRows(const vector<TResultRow>& rows, int start_idx, int num_rows);
 
   virtual int AddRows(const QueryResultSet* other, int start_idx, int num_rows);
