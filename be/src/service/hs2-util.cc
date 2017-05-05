@@ -711,7 +711,7 @@ static void PrintVal(const T& val, ostream* ss) {
 // Specialisation for byte values that would otherwise be interpreted as character values,
 // not integers, when printed to the stringstream.
 template<>
-static void PrintVal(const apache::hive::service::cli::thrift::TByteValue& val, ostream* ss) {
+void PrintVal(const apache::hive::service::cli::thrift::TByteValue& val, ostream* ss) {
   if (val.__isset.value) {
     (*ss) << static_cast<int16_t>(val.value);
   } else {
