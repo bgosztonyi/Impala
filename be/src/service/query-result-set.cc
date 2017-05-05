@@ -60,7 +60,7 @@ class AsciiQueryResultSet : public QueryResultSet {
   /// result set.
   virtual Status AddOneRow(const TResultRow& row);
  
-  /// Convert several row's expr values to ASCII using "\t" as column delimiter and
+  /// Convert several rows' expr values to ASCII using "\t" as column delimiter and
   /// store them in this result set.
   /// TODO: Handle complex types.
   virtual int AddRows(RowBatch * batch, const vector<ExprContext*> & expr_ctxs,
