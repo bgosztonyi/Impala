@@ -30,6 +30,52 @@ using namespace apache::hive::service::cli;
 using namespace impala;
 using namespace strings;
 
+inline int GetNullsRequiredSize(int numVals) {
+  return (numvals + 7) / 8;
+}
+
+inline void SetNullsSize(uint32_t new_size, string* nulls) {
+  nulls->resize(GetNullsRequiredSize(new_size));
+}
+
+// Set the null indicator bit for row 'row_idx', assuming this will be called for
+// successive increasing values of row_idx. If 'is_null' is true, the row_idx'th bit will
+// be set in 'nulls' (taking the LSB as bit 0). If 'is_null' is false, the row_idx'th bit
+// will be unchanged. If 'nulls' does not contain 'row_idx' bits, it will be extended by
+// one byte.
+inline void SetNullBit(uint32_t row_idx, bool is_null, string* nulls) {
+  DCHECK_LE(GetNullsRequiredSize(row_idx), nulls->size());
+  int16_t mod_8 = row_idx % 8;
+  if (mod_8 == 0) (*nulls) += '\0';
+  (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
+}
+
+inline void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
+  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
+  int16_t mod_8 = row_idx % 8;
+  (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
+}
+
+inline bool GetNullBit(const string& nulls, uint32_t row_idx) {
+  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
+  return nulls[row_idx / 8] & (1 << row_idx % 8);
+}
+
+void impala::StitchNulls(uint32_t num_rows_before, uint32_t num_rows_added,
+    uint32_t start_idx, const string& from, string* to) {
+  to->reserve((num_rows_before + num_rows_added + 7) / 8);
+
+  // TODO: This is very inefficient, since we could conceivably go one byte at a time
+  // (although the operands should stay live in registers in the loop). However doing this
+  // more efficiently leads to very complex code: we have to deal with the fact that
+  // 'start_idx' and 'num_rows_before' might both lead to offsets into the null bitset
+  // that don't start on a byte boundary. We should revisit this, ideally with a good
+  // bitset implementation.
+  for (int i = 0; i < num_rows_added; ++i) {
+    SetNullBit(num_rows_before + i, GetNullBit(from, i + start_idx), to);
+  }
+}
+
 template<typename S, typename T=S>
 void AddValues(RowBatch * batch, ExprContext* expr_ctx, vector<T>& result,
     string* nulls, uint32_t src_start_idx, uint32_t result_start_idx,
@@ -115,52 +161,6 @@ void AddCharValues(RowBatch * batch, ExprContext* expr_ctx,
     if (value!=NULL) result[result_idx].assign(StringValue::CharSlotToPtr(value, char_type), char_type.len);
     SetNullBitNoResize(result_idx,value==NULL,nulls);
     ++result_idx;
-  }
-}
-
-inline int GetNullsRequiredSize(int numVals) {
-  return (numvals + 7) / 8;
-}
-
-// Set the null indicator bit for row 'row_idx', assuming this will be called for
-// successive increasing values of row_idx. If 'is_null' is true, the row_idx'th bit will
-// be set in 'nulls' (taking the LSB as bit 0). If 'is_null' is false, the row_idx'th bit
-// will be unchanged. If 'nulls' does not contain 'row_idx' bits, it will be extended by
-// one byte.
-inline void SetNullBit(uint32_t row_idx, bool is_null, string* nulls) {
-  DCHECK_LE(GetNullsRequiredSize(row_idx), nulls->size());
-  int16_t mod_8 = row_idx % 8;
-  if (mod_8 == 0) (*nulls) += '\0';
-  (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
-}
-
-inline void SetNullsSize(uint32_t new_size, string* nulls) {
-  nulls->resize(GetNullsRequiredSize(new_size));
-}
-
-inline void SetNullBitNoResize(uint32_t row_idx, bool is_null, string* nulls) {
-  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
-  int16_t mod_8 = row_idx % 8;
-  (*nulls)[row_idx / 8] |= (1 << mod_8) * is_null;
-}
-
-inline bool GetNullBit(const string& nulls, uint32_t row_idx) {
-  DCHECK_LE(GetNullsRequiredSize(row_idx+1), nulls->size());
-  return nulls[row_idx / 8] & (1 << row_idx % 8);
-}
-
-void impala::StitchNulls(uint32_t num_rows_before, uint32_t num_rows_added,
-    uint32_t start_idx, const string& from, string* to) {
-  to->reserve((num_rows_before + num_rows_added + 7) / 8);
-
-  // TODO: This is very inefficient, since we could conceivably go one byte at a time
-  // (although the operands should stay live in registers in the loop). However doing this
-  // more efficiently leads to very complex code: we have to deal with the fact that
-  // 'start_idx' and 'num_rows_before' might both lead to offsets into the null bitset
-  // that don't start on a byte boundary. We should revisit this, ideally with a good
-  // bitset implementation.
-  for (int i = 0; i < num_rows_added; ++i) {
-    SetNullBit(num_rows_before + i, GetNullBit(from, i + start_idx), to);
   }
 }
 
