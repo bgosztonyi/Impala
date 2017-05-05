@@ -50,9 +50,14 @@ class QueryResultSet {
   /// operation, the row in the form of TResultRow.
   virtual Status AddOneRow(const TResultRow& row) = 0;
  
+  /// Add several rows to this result set. Values are calculated from rows in a RowBatch
+  /// using expressions. Each expression corresponds to a result column. Source rows are
+  /// taken from 'batch' starting from 'start_idx'.
   virtual int AddRows(RowBatch * batch, const std::vector<ExprContext*> & expr_ctxs,
       int start_idx, int num_rows) = 0;
 
+  /// Add several TResultRows to this result set. The result rows are taken from 'rows'
+  /// starting from 'start_idx'.
   virtual int AddRows(const std::vector<TResultRow>& rows, int start_idx, int num_rows) = 0;
 
   /// Copies rows in the range [start_idx, start_idx + num_rows) from the other result
